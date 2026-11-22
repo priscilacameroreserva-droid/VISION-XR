@@ -99,8 +99,8 @@ function updateXRHands(frame){
     const a=new THREE.Vector3(thumbPose.transform.position.x,thumbPose.transform.position.y,thumbPose.transform.position.z);
     const b=new THREE.Vector3(indexPose.transform.position.x,indexPose.transform.position.y,indexPose.transform.position.z);
     const pinching=a.distanceTo(b)<0.028;
-    const wasPinching=xrHandPinchDown.get(source handedKey(source))||false;
-    const key=source handedKey(source);
+    const wasPinching=xrHandPinchDown.get(handKey(source))||false;
+    const key=handKey(source);
     if(pinching&& !wasPinching && performance.now()-xrHandLastClick>450){
       xrHandLastClick=performance.now();
       // Pinch ray: extend from index fingertip along the index finger's pointing direction.
@@ -119,7 +119,7 @@ function updateXRHands(frame){
     xrHandPinchDown.set(key,pinching);
   }
 }
-function source handedKey(source){return source.handedness||'hand'}
+function handKey(source){return source.handedness||'hand'}
 $('#menuBtn').onclick=()=>{menu.visible=true;placeMenu();toast('Menu 3D reposicionado à sua frente')};$('#gyroBtn').onclick=()=>toggleGyro();$('#xrBtn').onclick=async()=>{try{if(!navigator.xr)throw Error('WebXR não disponível neste navegador');const ok=await navigator.xr.isSessionSupported('immersive-vr');if(!ok)throw Error('Este aparelho/navegador não oferece VR imersivo');const session=await navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor','hand-tracking']});await renderer.xr.setSession(session);session.addEventListener('end',()=>toast('Sessão WebXR encerrada'));toast('WebXR iniciado · aguardando mãos compatíveis')}catch(e){toast('WebXR: '+e.message)}};
 $('#enter').addEventListener('click',async()=>{try{$('#welcome').style.display='none';$('#fallback').style.display='flex';placeMenu();toast('Bem-vindo ao VXR · menu flutuante à sua frente');startGyro()}catch(e){$('#welcome').style.display='grid';toast('Erro ao entrar: '+e.message);console.error(e)}});
 addEventListener('beforeunload',()=>{if(handStream)handStream.getTracks().forEach(t=>t.stop())});
