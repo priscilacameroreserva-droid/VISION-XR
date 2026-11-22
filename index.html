@@ -10,8 +10,8 @@
 <body>
 <canvas id="world"></canvas>
 <div id="welcome"><div class="card"><div class="logo">VXR</div><div class="sub">VISION XR · CASA IMERSIVA</div><button id="enter">ENTRAR NA CASA</button><p class="note">Use o celular na horizontal. Autorize o movimento e a câmera traseira quando solicitado. Para VR Box, ative o modo dividido no menu 3D.</p></div></div>
-<video id="camPreview" autoplay playsinline muted></video>
-<div id="fallback"><button id="menuBtn">Abrir menu 3D</button><button id="gyroBtn">Giroscópio</button><button id="handBtn">Ativar mãos</button></div>
+
+<div id="fallback"><button id="menuBtn">Abrir menu 3D</button><button id="gyroBtn">Giroscópio</button><button id="xrBtn">Iniciar WebXR</button></div>
 <div id="help">Pinça: junte o polegar e o indicador para selecionar</div>
 <div id="status">Preparando ambiente 3D…</div>
 <script type="module">
@@ -28,7 +28,7 @@ function mat(color,rough=.8,extra={}){return new THREE.MeshStandardMaterial({col
 function mesh(geo,m,x,y,z,parent=scene){const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
 function box(w,h,d,x,y,z,m,parent=scene){return mesh(new THREE.BoxGeometry(w,h,d),m,x,y,z,parent)}
 function canvasTex(draw,repeatX=1,repeatY=1){const c=document.createElement('canvas');c.width=512;c.height=512;const g=c.getContext('2d');draw(g,c.width,c.height);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(repeatX,repeatY);t.colorSpace=THREE.SRGBColorSpace;return t}
-const floorTex=canvasTex((g,w,h)=>{g.fillStyle='#927052';g.fillRect(0,0,w,h);for(let y=0;y<h;y+=64){g.fillStyle=y%128?'#9b7958':'#886548';g.fillRect(0,y,w,62);for(let x=(y%128?0:128);x<w;x+=256){g.strokeStyle='#684b36';g.lineWidth=3;g.strokeRect(x,y,256,62)}for(let i=0;i<1800;i++){g.fillStyle='rgba(45,25,12,'+(Math.random()*.09)+')';g.fillRect(Math.random()*w,Math.random()*h,Math.random()*30+2,1)}},3,3);
+const floorTex=canvasTex((g,w,h)=>{g.fillStyle='#927052';g.fillRect(0,0,w,h);for(let y=0;y<h;y+=64){g.fillStyle=y%128?'#9b7958':'#886548';g.fillRect(0,y,w,62);for(let x=(y%128?0:128);x<w;x+=256){g.strokeStyle='#684b36';g.lineWidth=3;g.strokeRect(x,y,256,62)}for(let i=0;i<1800;i++){g.fillStyle='rgba(45,25,12,'+(Math.random()*.09)+')';g.fillRect(Math.random()*w,Math.random()*h,Math.random()*30+2,1)}}},3,3);
 const plasterTex=canvasTex((g,w,h)=>{g.fillStyle='#e5dfd3';g.fillRect(0,0,w,h);for(let i=0;i<9000;i++){g.fillStyle='rgba(80,70,55,'+(Math.random()*.055)+')';g.fillRect(Math.random()*w,Math.random()*h,1.5,1.5)}});
 const woodTex=canvasTex((g,w,h)=>{g.fillStyle='#98704d';g.fillRect(0,0,w,h);for(let i=0;i<90;i++){g.strokeStyle=i%3?'#805a3d':'#b08a60';g.globalAlpha=.3;g.lineWidth=Math.random()*3+1;g.beginPath();let y=Math.random()*h;g.moveTo(0,y);g.bezierCurveTo(160,y-15,330,y+15,w,y);g.stroke()}g.globalAlpha=1},1,1);
 const floorMat=new THREE.MeshStandardMaterial({map:floorTex,roughness:.82}),wallMat=new THREE.MeshStandardMaterial({map:plasterTex,roughness:.94}),woodMat=new THREE.MeshStandardMaterial({map:woodTex,roughness:.65});
@@ -70,7 +70,7 @@ function toggleGyro(){gyroEnabled?stopGyro():startGyro()}
 function recenter(){baseQuat.copy(deviceQuat);targetQuat.identity();camera.quaternion.identity();toast('Visão recentralizada')}
 function onMenuAction(obj){if(!obj?.userData?.action)return;obj.material.emissive=new THREE.Color(0x245e68);obj.userData.action()}
 const leftCam=new THREE.PerspectiveCamera(72,1,.05,100),rightCam=new THREE.PerspectiveCamera(72,1,.05,100);
-function render(){if(renderer.xr.isPresenting){renderer.render(scene,camera);return}if(stereo){const w=Math.floor(innerWidth/2),h=innerHeight;leftCam.position.copy(camera.position);rightCam.position.copy(camera.position);leftCam.quaternion.copy(camera.quaternion);rightCam.quaternion.copy(camera.quaternion);leftCam.translateX(-ipd/2);rightCam.translateX(ipd/2);leftCam.aspect=w/h;rightCam.aspect=w/h;leftCam.updateProjectionMatrix();rightCam.updateProjectionMatrix();renderer.setScissorTest(true);renderer.setViewport(0,0,w,h);renderer.setScissor(0,0,w,h);renderer.render(scene,leftCam);renderer.setViewport(w,0,w,h);renderer.setScissor(w,0,w,h);renderer.render(scene,rightCam);renderer.setScissorTest(false)}else renderer.render(scene,camera)}
+function render(timestamp,frame){if(renderer.xr.isPresenting){if(frame)updateXRHands(frame);renderer.render(scene,camera);return}if(stereo){const w=Math.floor(innerWidth/2),h=innerHeight;leftCam.position.copy(camera.position);rightCam.position.copy(camera.position);leftCam.quaternion.copy(camera.quaternion);rightCam.quaternion.copy(camera.quaternion);leftCam.translateX(-ipd/2);rightCam.translateX(ipd/2);leftCam.aspect=w/h;rightCam.aspect=w/h;leftCam.updateProjectionMatrix();rightCam.updateProjectionMatrix();renderer.setScissorTest(true);renderer.setViewport(0,0,w,h);renderer.setScissor(0,0,w,h);renderer.render(scene,leftCam);renderer.setViewport(w,0,w,h);renderer.setScissor(w,0,w,h);renderer.render(scene,rightCam);renderer.setScissorTest(false)}else renderer.render(scene,camera)}
 renderer.setAnimationLoop(render);
 function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}addEventListener('resize',resize);
 // giroscópio com compensação de orientação da tela e suavização por quaternion
@@ -81,12 +81,47 @@ function gyroTick(){if(gyroEnabled)camera.quaternion.slerp(targetQuat,.12)}
 async function startGyro(){try{if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){const p=await DeviceOrientationEvent.requestPermission();if(p!=='granted')throw Error('Permissão do giroscópio negada')}addEventListener('deviceorientation',orientation,true);gyroEnabled=true;baseQuat.copy(deviceQuat);targetQuat.identity();toast('Giroscópio ativo · movimento suavizado')}catch(e){toast('Não foi possível ativar o giroscópio: '+e.message)}}
 function stopGyro(){gyroEnabled=false;removeEventListener('deviceorientation',orientation,true);toast('Giroscópio pausado')}
 function animate(){requestAnimationFrame(animate);gyroTick();}animate();
-// hand tracking via MediaPipe Tasks Vision: câmera traseira obrigatória e pinça com raycast 3D
-let handStream=null,handLandmarker=null,handActive=false,lastVideoTime=-1,pinchWasDown=false,lastPinchAt=0,handLoopId=0;
-async function startHands(){if(handActive)return;try{if(!navigator.mediaDevices?.getUserMedia)throw Error('Câmera indisponível; abra o site por HTTPS no Chrome.');handStream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{exact:'environment'},width:{ideal:1280},height:{ideal:720}}});const video=$('#camPreview');video.srcObject=handStream;await video.play();video.style.display='block';toast('Carregando modelo de rastreamento de mãos…');const vision=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14');const fileset=await vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');const options={baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task'},runningMode:'VIDEO',numHands:2,minHandDetectionConfidence:.55,minHandPresenceConfidence:.55,minTrackingConfidence:.55};try{handLandmarker=await vision.HandLandmarker.createFromOptions(fileset,{...options,baseOptions:{...options.baseOptions,delegate:'GPU'}})}catch(gpuError){handLandmarker=await vision.HandLandmarker.createFromOptions(fileset,{...options,baseOptions:{...options.baseOptions,delegate:'CPU'}})}handActive=true;toast('Mãos ativas · faça pinça para selecionar');$('#handBtn').textContent='Mãos ativas';trackHands()}catch(e){if(handStream)handStream.getTracks().forEach(t=>t.stop());handStream=null;toast('Falha no rastreamento: '+e.message+' · verifique permissão da câmera traseira.');console.error(e)}}
-function trackHands(){if(!handActive)return;const video=$('#camPreview');if(video.readyState>=2&&video.currentTime!==lastVideoTime){lastVideoTime=video.currentTime;const result=handLandmarker.detectForVideo(video,performance.now());const landmarks=result.landmarks?.[0];if(landmarks){const thumb=landmarks[4],index=landmarks[8];const distance=Math.hypot(thumb.x-index.x,thumb.y-index.y);const pinching=distance<.055;const x=1-index.x,y=index.y;handRay.set(x*2-1,1-y*2);raycaster.setFromCamera(handRay,camera);const hits=raycaster.intersectObjects(hitTargets,false);if(hits.length){hits[0].object.material.emissive=new THREE.Color(pinching?0x277b82:0x12313b);if(pinching&&!pinchWasDown&&performance.now()-lastPinchAt>500){lastPinchAt=performance.now();onMenuAction(hits[0].object)}}if(pinching&&!pinchWasDown)toast('Pinça detectada');pinchWasDown=pinching}else{pinchWasDown=false}}handLoopId=requestAnimationFrame(trackHands)}
-$('#menuBtn').onclick=()=>{menu.visible=true;placeMenu();toast('Menu 3D reposicionado à sua frente')};$('#gyroBtn').onclick=()=>toggleGyro();$('#handBtn').onclick=()=>startHands();
-$('#enter').onclick=async()=>{$('#welcome').style.display='none';$('#fallback').style.display='flex';placeMenu();try{await startGyro()}catch(e){};toast('Bem-vindo ao VXR · menu flutuante à sua frente')};
+// Hand tracking nativo WebXR: usa joints fornecidos pela sessão imersiva, sem MediaPipe/câmera do celular.
+let xrHandPinchDown=new Map(),xrHandLastClick=0;
+function updateXRHands(frame){
+  const session=renderer.xr.getSession();
+  const referenceSpace=renderer.xr.getReferenceSpace();
+  if(!session||!referenceSpace||!frame)return;
+  for(const source of session.inputSources){
+    if(!source.hand)continue;
+    const thumbSpace=source.hand.get('thumb-tip');
+    const indexSpace=source.hand.get('index-finger-tip');
+    const indexBase=source.hand.get('index-finger-phalanx-distal')||source.hand.get('index-finger-metacarpal');
+    if(!thumbSpace||!indexSpace)continue;
+    const thumbPose=frame.getJointPose(thumbSpace,referenceSpace);
+    const indexPose=frame.getJointPose(indexSpace,referenceSpace);
+    if(!thumbPose||!indexPose)continue;
+    const a=new THREE.Vector3(thumbPose.transform.position.x,thumbPose.transform.position.y,thumbPose.transform.position.z);
+    const b=new THREE.Vector3(indexPose.transform.position.x,indexPose.transform.position.y,indexPose.transform.position.z);
+    const pinching=a.distanceTo(b)<0.028;
+    const wasPinching=xrHandPinchDown.get(source handedKey(source))||false;
+    const key=source handedKey(source);
+    if(pinching&& !wasPinching && performance.now()-xrHandLastClick>450){
+      xrHandLastClick=performance.now();
+      // Pinch ray: extend from index fingertip along the index finger's pointing direction.
+      let direction=new THREE.Vector3(0,0,-1);
+      if(indexBase){
+        const basePose=frame.getJointPose(indexBase,referenceSpace);
+        if(basePose){
+          direction.subVectors(b,new THREE.Vector3(basePose.transform.position.x,basePose.transform.position.y,basePose.transform.position.z)).normalize();
+        }
+      }
+      const handRay3=new THREE.Raycaster(b,direction,0,3.5);
+      const hits=handRay3.intersectObjects(hitTargets,false);
+      if(hits.length)onMenuAction(hits[0].object);
+      else toast('Pinça WebXR detectada · aponte o indicador para um botão');
+    }
+    xrHandPinchDown.set(key,pinching);
+  }
+}
+function source handedKey(source){return source.handedness||'hand'}
+$('#menuBtn').onclick=()=>{menu.visible=true;placeMenu();toast('Menu 3D reposicionado à sua frente')};$('#gyroBtn').onclick=()=>toggleGyro();$('#xrBtn').onclick=async()=>{try{if(!navigator.xr)throw Error('WebXR não disponível neste navegador');const ok=await navigator.xr.isSessionSupported('immersive-vr');if(!ok)throw Error('Este aparelho/navegador não oferece VR imersivo');const session=await navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor','hand-tracking']});await renderer.xr.setSession(session);session.addEventListener('end',()=>toast('Sessão WebXR encerrada'));toast('WebXR iniciado · aguardando mãos compatíveis')}catch(e){toast('WebXR: '+e.message)}};
+$('#enter').addEventListener('click',async()=>{try{$('#welcome').style.display='none';$('#fallback').style.display='flex';placeMenu();toast('Bem-vindo ao VXR · menu flutuante à sua frente');startGyro()}catch(e){$('#welcome').style.display='grid';toast('Erro ao entrar: '+e.message);console.error(e)}});
 addEventListener('beforeunload',()=>{if(handStream)handStream.getTracks().forEach(t=>t.stop())});
 </script>
 </body></html>
